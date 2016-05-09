@@ -127,7 +127,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="chip8.cpp" />
-    <ClCompile Include="Source.cpp" />
+    <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="chip8.h" />
