@@ -4,11 +4,12 @@ class chip8
 public:
 	chip8();
 	~chip8();
-	void stepCycle();
+	int stepCycle();
 	void init();
 	bool drawFlag();
 
 private:
+	int processZero(unsigned short opcode);
 	unsigned short opcode;
 	unsigned char memory[4096];
 	unsigned char v[16];
