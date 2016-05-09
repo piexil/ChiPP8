@@ -11,7 +11,7 @@ chip8::chip8()
 	0 - nothing
 	1 - cause a "beep" to be produced
 	2 - clear the screen
-
+	99 - error 
 */
 int chip8::stepCycle() {
 	//fetch block
@@ -31,7 +31,7 @@ int chip8::stepCycle() {
 
 		default:
 			std::cout << "Unknown opcode: 0x" + opcode << std::endl;
-
+			ret = 99;
 	}
 
 
@@ -60,6 +60,7 @@ int chip8::processZero(unsigned short opcode) {
 			break;
 		default:
 			std::cout << "Unknown opcode [0x0000]: 0x" + opcode << std::endl;
+			return 99;
 	}
 	return 0;
 }
