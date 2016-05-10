@@ -22,13 +22,48 @@ int chip8::stepCycle() {
 	switch (opcode & 0xF000) {
 		case 0x0000:
 			ret = processZero(opcode);
+			programCounter += 2;
 			break;
 		case 0xA000:	//ANNN
 			indexReg = opcode & 0x0FFF;
 			programCounter += 2;
 			break;
-
-
+		case 0x1000:	//JP NNN
+			programCounter = opcode & 0x0FFF;
+			break;
+		case 0x2000:	//CALL NNN
+			stack[++sp] = programCounter;
+			programCounter = opcode & 0x0FFF;
+			break;
+		case 0x3000:	// 	Skips the next instruction if VX equals NN.
+			if (v[opcode & 0x0F00 >> 3] == opcode & 0x00FF >> 2) {
+				programCounter += 2;
+			}
+			programCounter += 2;
+			break;
+		case 0x4000: // Skips the next instruction if VX doesn't equal NN.
+			if (!(v[opcode & 0x0F00 >> 3] == opcode & 0x00FF >> 2)) {
+				programCounter += 2;
+			}
+			programCounter += 2;
+			break;
+		case 0x5000: // Skips the next instruction if VX equals VY
+			if (v[opcode & 0x0F00 >> 3] == v[opcode & 0x00F0 >> 2]) {
+				programCounter += 2;
+			}
+			programCounter += 2;
+			break;
+		case 0x6000:
+			v[opcode & 0x0F00 >> 3] == opcode & 0x0FF;
+			programCounter = +2;
+			break;
+		case 0x7000:
+			v[opcode & 0x0F00 >> 3] += opcode & 0x0FF;
+			programCounter = +2;
+			break;
+		case 0x8000:
+			processEight(opcode);
+			break;
 		default:
 			std::cout << "Unknown opcode: 0x" + opcode << std::endl;
 			ret = 99;
@@ -51,6 +86,9 @@ int chip8::stepCycle() {
 
 
 }
+void chip8::processEight(unsigned short opcode) {
+
+}
 int chip8::processZero(unsigned short opcode) {
 	switch (opcode & 0x000F) {
 		case 0x0000: //CLS | 0x00E0
@@ -58,6 +96,7 @@ int chip8::processZero(unsigned short opcode) {
 		case 0x000E: //RET | 0x00EE
 			programCounter = stack[sp--];
 			break;
+
 		default:
 			std::cout << "Unknown opcode [0x0000]: 0x" + opcode << std::endl;
 			return 99;
@@ -83,7 +122,9 @@ bool chip8::drawFlag() {
 
 }
 
-
+unsigned char* chip8::getgfx() {
+	return gfx;
+}
 chip8::~chip8()
 {
 }
