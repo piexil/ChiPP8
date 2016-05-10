@@ -7,7 +7,6 @@ public:
 	int stepCycle();
 	void init();
 	bool drawFlag();
-	unsigned char* getgfx();
 
 private:
 	void processEight(unsigned short opcode);
