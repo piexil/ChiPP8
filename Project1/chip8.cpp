@@ -36,29 +36,29 @@ int chip8::stepCycle() {
 			programCounter = opcode & 0x0FFF;
 			break;
 		case 0x3000:	// 	Skips the next instruction if VX equals NN.
-			if (v[opcode & 0x0F00 >> 3] == opcode & 0x00FF >> 2) {
+			if (v[opcode & 0x0F00 >> 8] == (opcode & 0x00FF >> 4)) {
 				programCounter += 2;
 			}
 			programCounter += 2;
 			break;
 		case 0x4000: // Skips the next instruction if VX doesn't equal NN.
-			if (!(v[opcode & 0x0F00 >> 3] == opcode & 0x00FF >> 2)) {
+			if (!(v[opcode & 0x0F00 >> 8] == (opcode & 0x00FF >> 4))) {
 				programCounter += 2;
 			}
 			programCounter += 2;
 			break;
 		case 0x5000: // Skips the next instruction if VX equals VY
-			if (v[opcode & 0x0F00 >> 3] == v[opcode & 0x00F0 >> 2]) {
+			if (v[opcode & 0x0F00 >> 8] == (v[opcode & 0x00F0 >> 4])) {
 				programCounter += 2;
 			}
 			programCounter += 2;
 			break;
 		case 0x6000:
-			v[opcode & 0x0F00 >> 3] == opcode & 0x0FF;
+			v[opcode & 0x0F00 >> 8] = opcode & 0x0FF;
 			programCounter = +2;
 			break;
 		case 0x7000:
-			v[opcode & 0x0F00 >> 3] += opcode & 0x0FF;
+			v[opcode & 0x0F00 >> 8] += opcode & 0x0FF;
 			programCounter = +2;
 			break;
 		case 0x8000:
@@ -87,10 +87,39 @@ int chip8::stepCycle() {
 
 }
 void chip8::processEight(unsigned short opcode) {
-
+	switch(opcode & 0x000F) {
+		case 0x0000: // 8XY0
+			v[opcode & 0x0F00 >> 8] = v[opcode & 0x00F0 >> 4];
+			break;
+		case 0x0001: // X = X or Y
+			v[opcode & 0x0F00 >> 8] = v[opcode & 0x00F0 >> 4] | v[opcode & 0x0F00 >> 8];
+			break;
+		case 0x0002: // and
+			v[opcode & 0x0F00 >> 8] = v[opcode & 0x00F0 >> 4] & v[opcode & 0x0F00 >> 8];
+			break;
+		case 0x0003: // xor
+			v[opcode & 0x0F00 >> 8] = v[opcode & 0x00F0 >> 4] ^ v[opcode & 0x0F00 >> 8];
+			break;
+		case 0x0004: // add. VF is set to true if carry
+			if (v[(opcode & 0x00F0) >> 4] > (0xFF - v[(opcode & 0x0F00) >> 8]))
+				v[0xF] = 1; //carry
+			else
+				v[0xF] = 0;
+			v[(opcode & 0x0F00) >> 8] += v[(opcode & 0x00F0) >> 4];
+			break;
+		case 0x0005:
+			break;
+		case 0x0006:
+			break;
+		case 0x0007:
+			break;
+		case 0x000E:
+			break;
+	}
+	programCounter += 2;
 }
 int chip8::processZero(unsigned short opcode) {
-	switch (opcode & 0x000F) {
+	switch (opcode & 0x000F) { // assume 0x00EX
 		case 0x0000: //CLS | 0x00E0
 			return 2;// clears screen
 		case 0x000E: //RET | 0x00EE
@@ -119,7 +148,7 @@ void chip8::init() {
 	//
 }
 bool chip8::drawFlag() {
-
+	return true;
 }
 
 unsigned char* chip8::getgfx() {
