@@ -4,13 +4,16 @@ class chip8
 public:
 	chip8();
 	~chip8();
+	chip8(unsigned char[]);
 	int stepCycle();
 	void init();
 	bool drawFlag();
+	unsigned char* getgfx();
+	void setMem(int, unsigned char[]);
 
 private:
-	void aluOperation(unsigned short opcode);
-	int processZero(unsigned short opcode);
+	void aluOperation(unsigned short);
+	int processZero(unsigned short);
 	unsigned short opcode;
 	unsigned char memory[4096];
 	unsigned char v[16];
@@ -39,6 +42,6 @@ private:
 		0xE0, 0x90, 0x90, 0x90, 0xE0, // D
 		0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
 		0xF0, 0x80, 0xF0, 0x80, 0x80  // F
-	};
+	}; //defualt fontset is hardcoded into the machine
 };
 

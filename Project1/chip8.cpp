@@ -1,10 +1,21 @@
 #include "chip8.h"
 #include <iostream>
-
+#include <exception>
 
 chip8::chip8()
 {
+	init();
 }
+chip8::chip8(unsigned char newFont[]) {
+	init;
+	if (sizeof(newFont) != 80) {
+		throw std::invalid_argument("Font set is not equal to 80 bytes");
+	};
+	for (int i = 0; i < 80; i++) {
+		memory[i] = newFont[i];
+	}
+}
+
 
 /*
 	this function will return what the system will need to process. 
@@ -165,7 +176,15 @@ void chip8::init() {
 bool chip8::drawFlag() {
 	return true;
 }
-
+void chip8::setMem(int location, unsigned char newMem[]) {
+	if (sizeof(newMem) > 4095 - location) {
+		throw std::invalid_argument("New memeory is more than max allocation amount. Memory not set");
+		return;
+	}
+	for (int i = 0; i < sizeof(newMem); i++) {
+		memory[location++] = newMem[i];
+	}
+}
 unsigned char* chip8::getgfx() {
 	return gfx;
 }
