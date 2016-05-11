@@ -9,7 +9,7 @@ public:
 	bool drawFlag();
 
 private:
-	void processEight(unsigned short opcode);
+	void aluOperation(unsigned short opcode);
 	int processZero(unsigned short opcode);
 	unsigned short opcode;
 	unsigned char memory[4096];
