@@ -75,6 +75,17 @@ int chip8::stepCycle() {
 		case 0x8000:
 			aluOperation(opcode);
 			break;
+		case 0x9000: //SNE Skips the next instruction if VX equals VY
+			if (v[opcode & 0x0F00 >> 8] != (v[opcode & 0x00F0 >> 4])) {
+				programCounter += 2;
+			}
+			programCounter += 2;
+			break;
+		case 0xB000:
+			programCounter = (opcode & 0x0FFF) + v[0];
+			break;
+		case 0xC000:
+			break;
 		default:
 			std::cout << "Unknown opcode: 0x" + opcode << std::endl;
 			ret = 99;
