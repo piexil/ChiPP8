@@ -1,8 +1,10 @@
 #pragma once
+#include <iostream>
 class chip8
 {
 public:
 	chip8();
+	chip8(FILE* rom);
 	~chip8();
 	chip8(unsigned char[]);
 	int stepCycle();
@@ -12,6 +14,8 @@ public:
 	void setMem(int, unsigned char[]);
 
 private:
+	void finstruction(unsigned short);
+	void load(FILE* rom);
 	void aluOperation(unsigned short);
 	int processZero(unsigned short);
 	void draw(unsigned short);

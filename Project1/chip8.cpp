@@ -1,21 +1,24 @@
 #include "chip8.h"
-#include <iostream>
+
 #include <exception>
 
-chip8::chip8()
-{
+chip8::chip8(){
 	init();
 }
-chip8::chip8(unsigned char newFont[]) {
-	init;
-	for (int i = 0; i < 80; i++) {
-		memory[i] = newFont[i];
-	}
+chip8::chip8(FILE* rom){
+	chip8();
+	load(rom);
 }
-
-
+void chip8::load(FILE* rom) {
+	unsigned char buffer[3484];
+	fread(buffer, 1, 3484, rom);
+	for (int i = 0; i < 3484; i++) {
+		memory[i + 512] = buffer[i];
+	}
+	free(buffer);
+}
 /*
-	this function will return what the system will need to process. 
+	this function will process a single cycle of the chip8 computer 
 	0 - nothing
 	1 - cause a "beep" to be produced
 	2 - clear the screen
@@ -90,7 +93,28 @@ int chip8::stepCycle() {
 			draw(opcode);
 			programCounter += 2;
 			break;
-
+		case 0xE000:
+			switch (opcode & 0x00FF) {
+				case 0x009E: //Skips next instruction if Vx is pressed
+					if (key[v[(opcode & 0x0F00) >> 8]] != 0) {
+						programCounter += 2;
+					}
+					break;
+				case 0x00A1: //Skips instruction if Vx isn't pressed
+					if (key[v[(opcode & 0x0F00) >> 8]] == 0) {
+						programCounter += 2;
+					}
+					break;
+				default:
+					std::cout << "Unknown E-type opcode: 0x" + opcode << std::endl;
+					ret = 99;
+			}
+			programCounter += 2;
+			break;
+		case 0xF000:
+			finstruction(opcode);
+			programCounter += 2;
+			break;
 		default:
 			std::cout << "Unknown opcode: 0x" + opcode << std::endl;
 			ret = 99;
@@ -98,36 +122,59 @@ int chip8::stepCycle() {
 
 
 	//decrement phase
-	if (delay_timer > 0)
+	if (delay_timer > 0) {
 		--delay_timer;
-
-	if (sound_timer > 0)
-	{
+	}
+	if (sound_timer > 0){
 		if (sound_timer == 1)
 			ret = 1;
 		--sound_timer;
 	}
-
 	//return phase
 	return ret;
 
-
+}
+void chip8::finstruction(unsigned short opcode) {
+	switch (opcode & 0x00FF) {
+		case 0x0007:
+			v[(opcode & 0x0F00) >> 8] = delay_timer;
+			break;
+		case 0x000A:
+			bool keyPress = false;
+			for (int i = 0; i < 16; i++) {
+				if (key[i] != 0) {
+					v[opcode & 0x0F00 >> 8] = i;
+					keyPress = true;
+				}
+			}
+			if (!keyPress) {
+				return;
+			}
+			break;
+	}
 }
 void chip8::draw(unsigned short opcode) {
-	//DXYN
 	unsigned char yReg = opcode & 0x00F0 >> 4;
 	unsigned char xReg = opcode & 0x0F00 >> 8;
 	unsigned char xCor = v[xReg];
 	unsigned char yCor = v[yReg];
 	unsigned short nBytes = opcode & 0x000F;
 	unsigned short oldIndex = indexReg;
-	for (unsigned short i = 0; i < nBytes; i++) {
-		gfx[xCor++ * yCor++] = memory[indexReg++];
+	unsigned short pixel;
+	v[0xF] = 0;
+	for (int yline = 0; yline < nBytes; yline++){
+		pixel = memory[indexReg + yline];
+		for (int xline = 0; xline < 8; xline++){
+			if ((pixel & (0x80 >> xline)) != 0){
+				if (gfx[(xCor + xline + ((yCor + yline) * 64))] == 1)
+					v[0xF] = 1;
+				gfx[xCor + xline + ((yCor + yline) * 64)] ^= 1;
+			}
+		}
 	}
 	indexReg = oldIndex;
-
-
 }
+
 void chip8::aluOperation(unsigned short opcode) {
 	switch(opcode & 0x000F) {
 		case 0x0000: // 8XY0
@@ -219,6 +266,11 @@ void chip8::setMem(int location, unsigned char newMem[]) {
 unsigned char* chip8::getgfx() {
 	return gfx;
 }
-chip8::~chip8()
-{
+chip8::~chip8(){
+	free(memory);
+	free(v);
+	free(gfx);
+	free(key);
+	free(fontset);
+
 }
