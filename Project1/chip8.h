@@ -16,6 +16,7 @@ private:
 	int processZero(unsigned short);
 	void draw(unsigned short);
 	unsigned short opcode;
+	unsigned char temp;
 	unsigned char memory[4096];
 	unsigned char v[16];
 	unsigned short indexReg;

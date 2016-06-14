@@ -8,9 +8,6 @@ chip8::chip8()
 }
 chip8::chip8(unsigned char newFont[]) {
 	init;
-	if (sizeof(newFont) != 80) {
-		throw std::invalid_argument("Font set is not equal to 80 bytes");
-	};
 	for (int i = 0; i < 80; i++) {
 		memory[i] = newFont[i];
 	}
@@ -85,7 +82,7 @@ int chip8::stepCycle() {
 			programCounter = (opcode & 0x0FFF) + v[0];
 			break;
 		case 0xC000:
-			unsigned char temp = (opcode & 0x00FF >> 4) & (unsigned char)(rand() % 255);
+			temp = (opcode & 0x00FF >> 4) & (unsigned char)(rand() % 255);
 			v[opcode & 0x0F00 >> 8] = temp;
 			programCounter += 2;
 			break;
@@ -122,6 +119,13 @@ void chip8::draw(unsigned short opcode) {
 	unsigned char xReg = opcode & 0x0F00 >> 8;
 	unsigned char xCor = v[xReg];
 	unsigned char yCor = v[yReg];
+	unsigned short nBytes = opcode & 0x000F;
+	unsigned short oldIndex = indexReg;
+	for (unsigned short i = 0; i < nBytes; i++) {
+		gfx[xCor++ * yCor++] = memory[indexReg++];
+	}
+	indexReg = oldIndex;
+
 
 }
 void chip8::aluOperation(unsigned short opcode) {
