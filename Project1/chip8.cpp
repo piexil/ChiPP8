@@ -85,7 +85,15 @@ int chip8::stepCycle() {
 			programCounter = (opcode & 0x0FFF) + v[0];
 			break;
 		case 0xC000:
+			unsigned char temp = (opcode & 0x00FF >> 4) & (unsigned char)(rand() % 255);
+			v[opcode & 0x0F00 >> 8] = temp;
+			programCounter += 2;
 			break;
+		case 0xD000: //Draw
+			draw(opcode);
+			programCounter += 2;
+			break;
+
 		default:
 			std::cout << "Unknown opcode: 0x" + opcode << std::endl;
 			ret = 99;
@@ -106,6 +114,14 @@ int chip8::stepCycle() {
 	//return phase
 	return ret;
 
+
+}
+void chip8::draw(unsigned short opcode) {
+	//DXYN
+	unsigned char yReg = opcode & 0x00F0 >> 4;
+	unsigned char xReg = opcode & 0x0F00 >> 8;
+	unsigned char xCor = v[xReg];
+	unsigned char yCor = v[yReg];
 
 }
 void chip8::aluOperation(unsigned short opcode) {

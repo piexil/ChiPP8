@@ -14,6 +14,7 @@ public:
 private:
 	void aluOperation(unsigned short);
 	int processZero(unsigned short);
+	void draw(unsigned short);
 	unsigned short opcode;
 	unsigned char memory[4096];
 	unsigned char v[16];
