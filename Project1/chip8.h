@@ -6,7 +6,6 @@ public:
 	chip8();
 	chip8(FILE* rom);
 	~chip8();
-	chip8(unsigned char[]);
 	int stepCycle();
 	void init();
 	bool drawFlag();
@@ -14,11 +13,14 @@ public:
 	void setMem(int, unsigned char[]);
 
 private:
+	int ret;
 	void finstruction(unsigned short);
 	void load(FILE* rom);
 	void aluOperation(unsigned short);
 	int processZero(unsigned short);
 	void draw(unsigned short);
+	bool keyPress = false;
+	unsigned int indexOld = 0;
 	unsigned short opcode;
 	unsigned char temp;
 	unsigned char memory[4096];

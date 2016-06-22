@@ -1,18 +1,31 @@
 #include "chip8.h"
 
 #include <exception>
-
 chip8::chip8(){
 	init();
 }
 chip8::chip8(FILE* rom){
-	chip8();
+	init();
 	load(rom);
 }
 void chip8::load(FILE* rom) {
-	unsigned char buffer[3484];
-	fread(buffer, 1, 3484, rom);
-	for (int i = 0; i < 3484; i++) {
+	
+	fseek(rom, 0, SEEK_END);
+	long lSize = ftell(rom);
+	rewind(rom);
+	char* buffer = (char *)malloc(sizeof(char) * lSize);
+	if (buffer == NULL)
+	{
+		fputs("Memory error", stderr);
+		return;
+	}
+	size_t result = fread(buffer, 1, lSize, rom);
+	if (result != lSize)
+	{
+		fputs("Reading error", stderr);
+		return;
+	}
+	for (int i = 0; i < lSize; ++i) {
 		memory[i + 512] = buffer[i];
 	}
 	free(buffer);
@@ -26,9 +39,9 @@ void chip8::load(FILE* rom) {
 */
 int chip8::stepCycle() {
 	//fetch block
-	opcode = memory[programCounter] << 8 | memory[programCounter + 1]; // opcode is a short so it's made up of two byutes from memory.
-	int ret = 0;
-	
+	opcode = (memory[programCounter] << 8 | memory[programCounter + 1]); // opcode is a short so it's made up of two byutes from memory.
+	ret = 0;
+	printf("opcode: %x\n", opcode);
 	//decode & execution block
 	switch (opcode & 0xF000) {
 		case 0x0000:
@@ -106,8 +119,9 @@ int chip8::stepCycle() {
 					}
 					break;
 				default:
-					std::cout << "Unknown E-type opcode: 0x" + opcode << std::endl;
+					
 					ret = 99;
+					break;
 			}
 			programCounter += 2;
 			break;
@@ -116,7 +130,7 @@ int chip8::stepCycle() {
 			programCounter += 2;
 			break;
 		default:
-			std::cout << "Unknown opcode: 0x" + opcode << std::endl;
+			
 			ret = 99;
 	}
 
@@ -140,7 +154,7 @@ void chip8::finstruction(unsigned short opcode) {
 			v[(opcode & 0x0F00) >> 8] = delay_timer;
 			break;
 		case 0x000A:
-			bool keyPress = false;
+			keyPress = false;
 			for (int i = 0; i < 16; i++) {
 				if (key[i] != 0) {
 					v[opcode & 0x0F00 >> 8] = i;
@@ -166,21 +180,21 @@ void chip8::finstruction(unsigned short opcode) {
 			memory[indexReg] = (v[(opcode & 0x0F00) >> 8] % 100) % 10;
 			break;
 		case 0x0055:
-			int indexOld = indexReg;
+			indexOld = indexReg;
 			for (int i = 0; i < (opcode & 0x0F00) >> 8; i++) {
 				memory[indexReg++] = v[i];
 			}
 			indexReg = indexOld;
 			break;
 		case 0x0065:
-			int indexOld = indexReg;
+			indexOld = indexReg;
 			for (int i = 0; i < (opcode & 0x0F00) >> 8; i++) {
 				v[i] = memory[indexReg++];
 			}
 			indexReg = indexOld;
 			break;
 		default:
-			std::cout << "Unknown opcode: 0x" + opcode << std::endl;
+			break;
 	}
 }
 void chip8::draw(unsigned short opcode) {
@@ -275,6 +289,9 @@ void chip8::init() {
 	for (int i = 0; i < 16; i++) {
 		v[i] = 0;
 	}
+	for (int i = 0; i < 4095; i++) {
+		memory[i] = 0;
+	}
 	//move the fontset into memory
 	for(int i = 0; i < 80; i++) {
 		 memory[i] = fontset[i];
@@ -297,10 +314,4 @@ unsigned char* chip8::getgfx() {
 	return gfx;
 }
 chip8::~chip8(){
-	free(memory);
-	free(v);
-	free(gfx);
-	free(key);
-	free(fontset);
-
 }

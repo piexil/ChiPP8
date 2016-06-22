@@ -34,15 +34,47 @@ int main(int argc, char* args[])
 		{
 			//Get window surface
 			screenSurface = SDL_GetWindowSurface(window);
+			SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, 0);
+			SDL_Texture * texture = SDL_CreateTexture(renderer,
+				SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, 32, 64);
+			unsigned char * pixels = new unsigned char[32 * 64];
+			FILE* rom;
+			errno_t ferror;
+			chip8* chip;
+			if ((ferror = fopen_s(&rom, "rom", "rb")) != 0) {
+				std::cout << "Unable to open ROM" << std::endl;
+				return 1;
+			}
+			else {
 
-			//Fill the surface white
-			SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
 
-			//Update the surface
-			SDL_UpdateWindowSurface(window);
+				chip = new chip8(rom);
+			}
+			fclose(rom);
+			int returnStat;
+				while ((returnStat = chip->stepCycle()) != 99) {
+					if (returnStat != 2) {
+						unsigned char* tempScreen = chip->getgfx();
+						for (int i = 0; i < 2048; i++) {
+							if (tempScreen[i] == 1) {
+								pixels[i] = 255;
+							}
+						}
+					}
+					SDL_UpdateTexture(texture, NULL, pixels, 32 * sizeof(unsigned char));
+					//Update the surface
+					SDL_UpdateWindowSurface(window);
+					SDL_RenderClear(renderer);
+					SDL_RenderCopy(renderer, texture, NULL, NULL);
+					SDL_RenderPresent(renderer);
+				}
+			
+			delete[] pixels;
+			SDL_DestroyTexture(texture);
+			SDL_DestroyRenderer(renderer);
 
-			//Wait two seconds
-			SDL_Delay(2000);
+			
+
 		}
 	}
 
