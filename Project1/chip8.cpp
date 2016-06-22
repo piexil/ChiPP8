@@ -151,6 +151,36 @@ void chip8::finstruction(unsigned short opcode) {
 				return;
 			}
 			break;
+		case 0x0015:
+			delay_timer = v[(opcode & 0x0F00) >> 8];
+			break;
+		case 0x0018:
+			sound_timer = v[(opcode & 0x0F00) >> 8];
+			break;
+		case 0x001E:
+			indexReg += v[(opcode & 0x0F00) >> 8];
+			break;
+		case 0x0033:
+			memory[indexReg] = v[(opcode & 0x0F00) >> 8] / 100;
+			memory[indexReg] = (v[(opcode & 0x0F00) >> 8] / 10) % 10;
+			memory[indexReg] = (v[(opcode & 0x0F00) >> 8] % 100) % 10;
+			break;
+		case 0x0055:
+			int indexOld = indexReg;
+			for (int i = 0; i < (opcode & 0x0F00) >> 8; i++) {
+				memory[indexReg++] = v[i];
+			}
+			indexReg = indexOld;
+			break;
+		case 0x0065:
+			int indexOld = indexReg;
+			for (int i = 0; i < (opcode & 0x0F00) >> 8; i++) {
+				v[i] = memory[indexReg++];
+			}
+			indexReg = indexOld;
+			break;
+		default:
+			std::cout << "Unknown opcode: 0x" + opcode << std::endl;
 	}
 }
 void chip8::draw(unsigned short opcode) {
