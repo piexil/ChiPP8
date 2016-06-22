@@ -36,8 +36,9 @@ int main(int argc, char* args[])
 			screenSurface = SDL_GetWindowSurface(window);
 			SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, 0);
 			SDL_Texture * texture = SDL_CreateTexture(renderer,
-				SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, 32, 64);
-			unsigned char * pixels = new unsigned char[32 * 64];
+				SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, 64, 64);
+			uint32_t* pixels = new uint32_t[ 2048 ];
+			int pitch;  // Pitch = 256 bytes (64 pixels * 4 bytes per pixel)
 			FILE* rom;
 			errno_t ferror;
 			chip8* chip;
@@ -53,19 +54,29 @@ int main(int argc, char* args[])
 			fclose(rom);
 			int returnStat;
 				while ((returnStat = chip->stepCycle()) != 99) {
-					if (returnStat != 2) {
-						unsigned char* tempScreen = chip->getgfx();
-						for (int i = 0; i < 2048; i++) {
-							if (tempScreen[i] == 1) {
-								pixels[i] = 255;
-							}
+
+
+					SDL_LockTexture(texture, NULL, (void**)&pixels, &pitch);
+					chip->debugRender();
+					
+					for (int i = 0; i < 2048; i++)
+					{
+						if (!chip->getgfx()[i])
+						{
+							pixels[i] = 0000;
+						}
+						else
+						{
+							pixels[i] = 0b00101011;
 						}
 					}
-					SDL_UpdateTexture(texture, NULL, pixels, 32 * sizeof(unsigned char));
-					//Update the surface
-					SDL_UpdateWindowSurface(window);
+
+					SDL_UnlockTexture(texture);
+
 					SDL_RenderClear(renderer);
+
 					SDL_RenderCopy(renderer, texture, NULL, NULL);
+
 					SDL_RenderPresent(renderer);
 				}
 			

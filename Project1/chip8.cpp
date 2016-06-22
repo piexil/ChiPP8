@@ -1,6 +1,24 @@
 #include "chip8.h"
 
 #include <exception>
+unsigned char fontset[80] = {
+	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+	0x20, 0x60, 0x20, 0x20, 0x70, // 1
+	0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+	0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+	0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+	0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+	0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+	0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+	0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+	0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+	0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+	0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+	0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+	0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+	0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+	0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+};
 chip8::chip8(){
 	init();
 }
@@ -41,7 +59,7 @@ int chip8::stepCycle() {
 	//fetch block
 	opcode = (memory[programCounter] << 8 | memory[programCounter + 1]); // opcode is a short so it's made up of two byutes from memory.
 	ret = 0;
-	printf("opcode: %x\n", opcode);
+	printf("Executing: %x @ Loc: %x\n", opcode,programCounter);
 	//decode & execution block
 	switch (opcode & 0xF000) {
 		case 0x0000:
@@ -79,11 +97,11 @@ int chip8::stepCycle() {
 			break;
 		case 0x6000:
 			v[opcode & 0x0F00 >> 8] = opcode & 0x0FF;
-			programCounter = +2;
+			programCounter += 2;
 			break;
 		case 0x7000:
 			v[opcode & 0x0F00 >> 8] += opcode & 0x0FF;
-			programCounter = +2;
+			programCounter += 2;
 			break;
 		case 0x8000:
 			aluOperation(opcode);
@@ -130,7 +148,7 @@ int chip8::stepCycle() {
 			programCounter += 2;
 			break;
 		default:
-			
+			printf("Unknown opcode: %x\n", opcode);
 			ret = 99;
 	}
 
@@ -147,6 +165,22 @@ int chip8::stepCycle() {
 	//return phase
 	return ret;
 
+}
+void chip8::debugRender()
+{
+	// Draw
+	for (int y = 0; y < 32; ++y)
+	{
+		for (int x = 0; x < 64; ++x)
+		{
+			if (gfx[(y * 64) + x] == 0)
+				printf("X");
+			else
+				printf(" ");
+		}
+		printf("\n");
+	}
+	printf("\n");
 }
 void chip8::finstruction(unsigned short opcode) {
 	switch (opcode & 0x00FF) {
@@ -174,6 +208,9 @@ void chip8::finstruction(unsigned short opcode) {
 		case 0x001E:
 			indexReg += v[(opcode & 0x0F00) >> 8];
 			break;
+		case 0x0029:
+			indexReg = v[(opcode & 0x0F00) >> 8] * 5;
+			break;
 		case 0x0033:
 			memory[indexReg] = v[(opcode & 0x0F00) >> 8] / 100;
 			memory[indexReg] = (v[(opcode & 0x0F00) >> 8] / 10) % 10;
@@ -194,29 +231,35 @@ void chip8::finstruction(unsigned short opcode) {
 			indexReg = indexOld;
 			break;
 		default:
+			printf("Unknown opcode: %x\n", opcode);
 			break;
 	}
 }
 void chip8::draw(unsigned short opcode) {
-	unsigned char yReg = opcode & 0x00F0 >> 4;
-	unsigned char xReg = opcode & 0x0F00 >> 8;
-	unsigned char xCor = v[xReg];
-	unsigned char yCor = v[yReg];
-	unsigned short nBytes = opcode & 0x000F;
-	unsigned short oldIndex = indexReg;
+	unsigned short x = v[(opcode & 0x0F00) >> 8];
+	unsigned short y = v[(opcode & 0x00F0) >> 4];
+	unsigned short height = opcode & 0x000F;
 	unsigned short pixel;
+
 	v[0xF] = 0;
-	for (int yline = 0; yline < nBytes; yline++){
+	for (int yline = 0; yline < height; yline++)
+	{
 		pixel = memory[indexReg + yline];
-		for (int xline = 0; xline < 8; xline++){
-			if ((pixel & (0x80 >> xline)) != 0){
-				if (gfx[(xCor + xline + ((yCor + yline) * 64))] == 1)
+		for (int xline = 0; xline < 8; xline++)
+		{
+			if ((pixel & (0x80 >> xline)) != 0)
+			{
+				if (gfx[(x + xline + ((y + yline) * 64))] == 1)
+				{
 					v[0xF] = 1;
-				gfx[xCor + xline + ((yCor + yline) * 64)] ^= 1;
+				}
+				gfx[x + xline + ((y + yline) * 64)] ^= 1;
 			}
 		}
 	}
-	indexReg = oldIndex;
+
+	drawFlag = true;
+	
 }
 
 void chip8::aluOperation(unsigned short opcode) {
@@ -298,9 +341,9 @@ void chip8::init() {
 	}
 	//
 }
-bool chip8::drawFlag() {
-	return true;
-}
+
+	
+
 void chip8::setMem(int location, unsigned char newMem[]) {
 	if (sizeof(newMem) > 4095 - location) {
 		throw std::invalid_argument("New memeory is more than max allocation amount. Memory not set");
