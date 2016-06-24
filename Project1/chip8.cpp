@@ -27,25 +27,28 @@ chip8::chip8(FILE* rom){
 	load(rom);
 }
 void chip8::load(FILE* rom) {
-	
+	printf("loading rom.");
 	fseek(rom, 0, SEEK_END);
 	long lSize = ftell(rom);
 	rewind(rom);
 	char* buffer = (char *)malloc(sizeof(char) * lSize);
 	if (buffer == NULL)
 	{
-		fputs("Memory error", stderr);
+		printf("\nMemory error");
 		return;
 	}
 	size_t result = fread(buffer, 1, lSize, rom);
 	if (result != lSize)
 	{
-		fputs("Reading error", stderr);
+		printf("\nReading error");
 		return;
 	}
 	for (int i = 0; i < lSize; ++i) {
 		memory[i + 512] = buffer[i];
+		printf(".");
+		Sleep(1);
 	}
+	printf("\n");
 	free(buffer);
 }
 /*
@@ -59,15 +62,15 @@ int chip8::stepCycle() {
 	//fetch block
 	opcode = (memory[programCounter] << 8 | memory[programCounter + 1]); // opcode is a short so it's made up of two byutes from memory.
 	ret = 0;
-	printf("Executing: 0x%x @ Loc: %x%x\n", opcode, programCounter, programCounter + 1);
-	Sleep(120);
+	printf("Executing: 0x%x @ Loc: %x & %x\n", opcode, programCounter, programCounter + 1);
+	Sleep(100);
 	//decode & execution block
 	switch (opcode & 0xF000) {
 		case 0x0000:
 			ret = processZero(opcode);
 			if (ret == 2) {
 				for (int i = 0; i < 2048; i++) {
-					gfx[i] = 0;
+					gfx[i] = 0x0;
 				}
 			}
 			programCounter += 2;
@@ -85,36 +88,37 @@ int chip8::stepCycle() {
 			programCounter = opcode & 0x0FFF;
 			break;
 		case 0x3000:	// 	Skips the next instruction if VX equals NN.
-			if (v[opcode & 0x0F00 >> 8] == (opcode & 0x00FF)) {
+			if (v[(opcode & 0x0F00) >> 8] == (opcode & 0x00FF)) {
 				programCounter += 2;
 			}
 			programCounter += 2;
 			break;
 		case 0x4000: // Skips the next instruction if VX doesn't equal NN.
-			if ((v[opcode & 0x0F00 >> 8] != (opcode & 0x00FF))) {
+			if ((v[(opcode & 0x0F00) >> 8] != (opcode & 0x00FF))) {
 				programCounter += 2;
 			}
 			programCounter += 2;
 			break;
 		case 0x5000: // Skips the next instruction if VX equals VY
-			if (v[opcode & 0x0F00 >> 8] == (v[opcode & 0x00F0 >> 4])) {
+			if (v[(opcode & 0x0F00) >> 8] == (v[(opcode & 0x00F0) >> 4])) {
 				programCounter += 2;
 			}
 			programCounter += 2;
 			break;
-		case 0x6000:
-			v[opcode & 0x0F00 >> 8] = opcode & 0x0FF;
+		case 0x6000: //sets Vx to NN
+			v[(opcode & 0x0F00) >> 8] = opcode & 0x00FF;
 			programCounter += 2;
 			break;
 		case 0x7000:
-			v[opcode & 0x0F00 >> 8] += opcode & 0x0FF;
+			v[(opcode & 0x0F00) >> 8] += opcode & 0x00FF;
 			programCounter += 2;
 			break;
 		case 0x8000:
 			aluOperation(opcode);
+			programCounter += 2;
 			break;
 		case 0x9000: //SNE Skips the next instruction if VX ! equals VY
-			if (v[opcode & 0x0F00 >> 8] != (v[opcode & 0x00F0 >> 4])) {
+			if (v[(opcode & 0x0F00) >> 8] != (v[(opcode & 0x00F0) >> 4])) {
 				programCounter += 2;
 			}
 			programCounter += 2;
@@ -123,7 +127,7 @@ int chip8::stepCycle() {
 			programCounter = (opcode & 0x0FFF) + v[0];
 			break;
 		case 0xC000:
-			v[(opcode & 0x0F00) >> 8] = (opcode & 0x00FF) & (unsigned char)(rand() % 255);
+			v[(opcode & 0x0F00) >> 8] = (opcode & 0x00FF) & (unsigned char)(rand() % 0xFF);
 			programCounter += 2;
 			break;
 		case 0xD000: //Draw
@@ -136,18 +140,19 @@ int chip8::stepCycle() {
 					if (key[v[(opcode & 0x0F00) >> 8]] != 0) {
 						programCounter += 2;
 					}
+					programCounter += 2;
 					break;
 				case 0x00A1: //Skips instruction if Vx isn't pressed
 					if (key[v[(opcode & 0x0F00) >> 8]] == 0) {
 						programCounter += 2;
 					}
+					programCounter += 2;
 					break;
 				default:
 					
 					ret = 99;
 					break;
 			}
-			programCounter += 2;
 			break;
 		case 0xF000:
 			finstruction(opcode);
@@ -163,9 +168,11 @@ int chip8::stepCycle() {
 	if (delay_timer > 0) {
 		--delay_timer;
 	}
-	if (sound_timer > 0){
-		if (sound_timer == 1)
+	if (sound_timer > 0) {
+		if (sound_timer == 1){
 			ret = 1;
+		printf("BEEP!\n");
+		}
 		--sound_timer;
 	}
 	//return phase
@@ -179,31 +186,38 @@ void chip8::debugRender()
 	{
 		for (int x = 0; x < 64; ++x)
 		{
-			if (gfx[(y * 64) + x] == 0)
-				printf(" ");
+			if (gfx[(y * 64) + x] == 'Ì')
+				printf("O");
 			else
-				printf("*");
+				printf(" ");
 		}
 		printf("\n");
 	}
 	printf("\n");
 }
 void chip8::finstruction(unsigned short opcode) {
+	bool keyPress = false;
 	switch (opcode & 0x00FF) {
+		
 	case 0x0007:
 		v[(opcode & 0x0F00) >> 8] = delay_timer;
 		break;
 	case 0x000A:
 		keyPress = false;
-		for (int i = 0; i < 16; i++) {
-			if (key[i] != 0) {
-				v[opcode & 0x0F00 >> 8] = i;
+
+		for (int i = 0; i < 16; ++i)
+		{
+			if (key[i] != 0)
+			{
+				v[(opcode & 0x0F00) >> 8] = i;
 				keyPress = true;
 			}
 		}
-		if (!keyPress) {
+
+		// If we didn't received a keypress, skip this cycle and try again.
+		if (!keyPress)
 			return;
-		}
+
 		break;
 	case 0x0015:
 		delay_timer = v[(opcode & 0x0F00) >> 8];
@@ -221,7 +235,7 @@ void chip8::finstruction(unsigned short opcode) {
 		indexReg += v[(opcode & 0x0F00) >> 8];
 		break;
 	case 0x0029:
-			indexReg = v[(opcode & 0x0F00) >> 8] * 5;
+			indexReg = v[(opcode & 0x0F00) >> 8] * 0x5;
 			break;
 		case 0x0033:
 			memory[indexReg] = v[(opcode & 0x0F00) >> 8] / 100;
@@ -261,7 +275,7 @@ void chip8::draw(unsigned short opcode) {
 				{
 					v[0xF] = 1;
 				}
-				gfx[x + xline + ((y + yline) * 64)] = 1;
+				gfx[x + xline + ((y + yline) * 64)] ^= 1;
 			}
 		}
 	}
@@ -273,16 +287,16 @@ void chip8::draw(unsigned short opcode) {
 void chip8::aluOperation(unsigned short opcode) {
 	switch(opcode & 0x000F) {
 		case 0x0000: // 8XY0
-			v[opcode & 0x0F00 >> 8] = v[opcode & 0x00F0 >> 4];
+			v[(opcode & 0x0F00) >> 8] = v[(opcode & 0x00F0) >> 4];
 			break;
 		case 0x0001: // X = X or Y
-			v[opcode & 0x0F00 >> 8] = v[opcode & 0x00F0 >> 4] | v[opcode & 0x0F00 >> 8];
+			v[(opcode & 0x0F00) >> 8] = v[(opcode & 0x00F0) >> 4] | v[(opcode & 0x0F00) >> 8];
 			break;
 		case 0x0002: // and
-			v[opcode & 0x0F00 >> 8] = v[opcode & 0x00F0 >> 4] & v[opcode & 0x0F00 >> 8];
+			v[(opcode & 0x0F00) >> 8] = v[(opcode & 0x00F0) >> 4] & v[(opcode & 0x0F00) >> 8];
 			break;
 		case 0x0003: // xor
-			v[opcode & 0x0F00 >> 8] = v[opcode & 0x00F0 >> 4] ^ v[opcode & 0x0F00 >> 8];
+			v[(opcode & 0x0F00) >> 8] = v[(opcode & 0x00F0) >> 4] ^ v[(opcode & 0x0F00) >> 8];
 			break;
 		case 0x0004: // add. VF is set to true if carry
 			if (v[(opcode & 0x00F0) >> 4] > (0xFF - v[(opcode & 0x0F00) >> 8]))
@@ -293,9 +307,9 @@ void chip8::aluOperation(unsigned short opcode) {
 			break;
 		case 0x0005: // sub.  Vx = Vx - Vy. VF is set to false on "borrow"
 			if (v[(opcode & 0x0F00) >> 8] > v[(opcode & 0x00F0) >> 4]) 
-				v[0xF] = 1;
+				v[0xF] = 0;
 			else 
-				v[0xF] = 0;			
+				v[0xF] = 1;			
 			v[(opcode & 0x0F00) >> 8] -= v[(opcode & 0x00F0) >> 4];
 			break;
 		case 0x0006: // shift VX right by one. VF is set to least signifigant bit before shift
@@ -304,9 +318,9 @@ void chip8::aluOperation(unsigned short opcode) {
 			break;
 		case 0x0007: // sub VX = VY - VX; VF is set to fals eon borrow
 			if (v[(opcode & 0x00F0) >> 4] > v[(opcode & 0x0F00) >> 8])
-				v[0xF] = 1;
-			else
 				v[0xF] = 0;
+			else
+				v[0xF] = 1;
 			v[(opcode & 0x0F00) >> 8] = v[(opcode & 0x00F0) >> 4] - v[(opcode & 0x0F00) >> 8];
 			break;
 		case 0x000E: // shift VX left by 1. VF = most signifigant bit
@@ -314,7 +328,7 @@ void chip8::aluOperation(unsigned short opcode) {
 			v[(opcode & 0x0F00) >> 8] = v[(opcode & 0x0F00) >> 8] << 1;
 			break;
 	}
-	programCounter += 2;
+	
 }
 int chip8::processZero(unsigned short opcode) {
 	switch (opcode & 0x000F) { // assume 0x00EX
@@ -322,7 +336,8 @@ int chip8::processZero(unsigned short opcode) {
 			
 			return 2;// clears screen
 		case 0x000E: //RET | 0x00EE
-			programCounter = stack[--sp];
+			sp--;
+			programCounter = stack[sp];
 			break;
 
 		default:
@@ -344,6 +359,7 @@ void chip8::init() {
 		memory[i] = 0;
 	}
 	//move the fontset into memory
+	printf("loading fontset..........\n");
 	for(int i = 0; i < 80; i++) {
 		 memory[i] = fontset[i];
 		 printf("%x %x\n", fontset[i], memory[i]);

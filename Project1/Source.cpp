@@ -42,8 +42,8 @@ int main(int argc, char* args[])
 			FILE* rom;
 			errno_t ferror;
 			chip8* chip;
-			if ((ferror = fopen_s(&rom, "rom", "rb")) != 0) {
-				std::cout << "Unable to open ROM" << std::endl;
+			if ((ferror = fopen_s(&rom, "pong2.c8", "rb")) != 0) {
+				printf("Unable to open ROM");
 				return 1;
 			}
 			else {
@@ -57,7 +57,7 @@ int main(int argc, char* args[])
 
 
 					SDL_LockTexture(texture, NULL, (void**)&pixels, &pitch);
-					chip->debugRender();
+					//chip->debugRender();
 					
 					for (int i = 0; i < 2048; i++)
 					{
